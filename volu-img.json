@@ -1,0 +1,14 @@
+[
+    {
+        "sku":"PRODUCT-1",
+        "img":"PRODUCT-1.jpg",
+        "img_alts":[
+            "PRODUCT-1-ALT.jpg"
+        ],
+        "large": { "width": 0, "height": 700},
+        "medium": { "width": 400, "height": 400},
+        "small": { "width": 500, "height": 500},
+        "tiny": { "width": 100, "height": 100},
+        "thumb": { "width": 0, "height": 50}
+    }
+]
