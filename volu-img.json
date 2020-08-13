@@ -10,5 +10,17 @@
         "small": { "width": 500, "height": 500},
         "tiny": { "width": 100, "height": 100},
         "thumb": { "width": 0, "height": 50}
+    },
+    {
+        "sku":"PRODUCT-2",
+        "img":"PRODUCT-2.jpg",
+        "img_alts":[
+            "PRODUCT-2-ALT.jpg"
+        ],
+        "large": { "width": 0, "height": 700},
+        "medium": { "width": 400, "height": 400},
+        "small": { "width": 500, "height": 500},
+        "tiny": { "width": 100, "height": 100},
+        "thumb": { "width": 0, "height": 50}
     }
 ]
