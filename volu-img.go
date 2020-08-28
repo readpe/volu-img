@@ -11,9 +11,12 @@ import (
 	"log"
 	"os"
 	"path"
+	"sync"
 
 	"github.com/nfnt/resize"
 )
+
+var mux sync.Mutex
 
 // image size structure
 type size struct {
@@ -82,13 +85,16 @@ func genImages(p product, imgDir string) {
 	}
 	file.Close()
 
+	var wg sync.WaitGroup
+
 	// see https://helpcenter.volusion.com/en/articles/1773795-product-image-file-names
 	// Create the "main" image sizes
-	createImage(img, fmt.Sprintf("%s-2.jpg", p.Sku), imgDir, p.Large)
-	createImage(img, fmt.Sprintf("%s-1.jpg", p.Sku), imgDir, p.Small)
-	createImage(img, fmt.Sprintf("%s-0.jpg", p.Sku), imgDir, p.Tiny)
-	createImage(img, fmt.Sprintf("%s-2S.jpg", p.Sku), imgDir, p.Thumb)
-	createImage(img, fmt.Sprintf("%s-2T.jpg", p.Sku), imgDir, p.Medium)
+	wg.Add(5)
+	createImage(img, fmt.Sprintf("%s-2.jpg", p.Sku), imgDir, p.Large, &wg)
+	createImage(img, fmt.Sprintf("%s-1.jpg", p.Sku), imgDir, p.Small, &wg)
+	createImage(img, fmt.Sprintf("%s-0.jpg", p.Sku), imgDir, p.Tiny, &wg)
+	createImage(img, fmt.Sprintf("%s-2S.jpg", p.Sku), imgDir, p.Thumb, &wg)
+	createImage(img, fmt.Sprintf("%s-2T.jpg", p.Sku), imgDir, p.Medium, &wg)
 
 	// create the "alternative" image sizes, extension starts at 3+, e.g
 	for i, imgAlt := range p.ImgAlts {
@@ -108,10 +114,12 @@ func genImages(p product, imgDir string) {
 		file.Close()
 
 		// tiny and small sizes not created for alternative images
-		createImage(img, fmt.Sprintf("%s-%d.jpg", p.Sku, i+3), imgDir, p.Large)
-		createImage(img, fmt.Sprintf("%s-%dS.jpg", p.Sku, i+3), imgDir, p.Thumb)
-		createImage(img, fmt.Sprintf("%s-%dT.jpg", p.Sku, i+3), imgDir, p.Medium)
+		wg.Add(3)
+		createImage(img, fmt.Sprintf("%s-%d.jpg", p.Sku, i+3), imgDir, p.Large, &wg)
+		createImage(img, fmt.Sprintf("%s-%dS.jpg", p.Sku, i+3), imgDir, p.Thumb, &wg)
+		createImage(img, fmt.Sprintf("%s-%dT.jpg", p.Sku, i+3), imgDir, p.Medium, &wg)
 	}
+	wg.Wait()
 }
 
 // detSize determines the maximum dimension size to limit, if both height and width provided, only scales the largest dimension.
@@ -139,7 +147,9 @@ func detSize(s size, b image.Rectangle) size {
 	}
 }
 
-func createImage(img image.Image, fileName, imgDir string, s size) {
+func createImage(img image.Image, fileName, imgDir string, s size, wg *sync.WaitGroup) {
+
+	defer wg.Done()
 
 	bnds := img.Bounds()
 
@@ -148,6 +158,7 @@ func createImage(img image.Image, fileName, imgDir string, s size) {
 	m := resize.Resize(uint(s.Width), uint(s.Height), img, resize.Lanczos3)
 
 	// creates new directory "volu" in images directory, if does not exist
+	mux.Lock()
 	newDir := path.Join(imgDir, "volu")
 	if _, err := os.Stat(newDir); os.IsNotExist(err) {
 		os.Mkdir(newDir, 0755)
@@ -158,6 +169,7 @@ func createImage(img image.Image, fileName, imgDir string, s size) {
 		log.Fatal(err)
 	}
 	defer out.Close()
+	mux.Unlock()
 
 	// write new image to file
 	jpeg.Encode(out, m, nil)
